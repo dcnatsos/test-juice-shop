@@ -35,7 +35,14 @@ export function waitForInputToHaveValue (inputSelector: string, value: string, o
       const propertyChain = options.replacement[1].split('.')
       let replacementValue = config
       for (const property of propertyChain) {
-        replacementValue = replacementValue[property]
+        // Only allow object's own properties, and not the ones inherited from the prototype chain, like Object.prototype or Object.prototype.__proto__
+        // Thus, if property could be influenced by the user, it would not be possible to access arbitrary properties
+        // neither polluting the prototype chain nor accessing properties from other objects, by using the __proto__ property
+        if (Object.prototype.hasOwnProperty.call(replacementValue, property)) {
+          replacementValue = replacementValue[property];
+        } else {
+          throw new Error('Invalid property access');
+        }
       }
       value = value.replace(options.replacement[0], replacementValue)
     }

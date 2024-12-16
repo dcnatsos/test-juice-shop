@@ -2,6 +2,8 @@ import fs from 'fs/promises'
 import path from 'path'
 import logger from './logger'
 
+import { checkSync } from 'recheck'
+
 export const SNIPPET_PATHS = Object.freeze(['./server.ts', './routes', './lib', './data', './data/static/web3-snippets', './frontend/src/app', './models'])
 
 interface FileMatch {
@@ -73,6 +75,16 @@ function getCodingChallengeFromFileContent (source: string, challengeKey: string
   const vulnLines = []
   const neutralLines = []
   for (let i = 0; i < lines.length; i++) {
+
+    const vulnRegex = `vuln-code-snippet vuln-line.*${challengeKey}`;
+    const neutralRegex = `vuln-code-snippet neutral-line.*${challengeKey}`;
+    const vulnDiagnostics = checkSync(vulnRegex, "");
+    const neutralDiagnostics = checkSync(neutralRegex, "");
+
+    if(vulnDiagnostics.status === "vulnerable" || neutralDiagnostics.status === "vulnerable") {
+      throw new Error("ReDoS detected in regex");
+    }
+
     if (new RegExp(`vuln-code-snippet vuln-line.*${challengeKey}`).exec(lines[i]) != null) {
       vulnLines.push(i + 1)
     } else if (new RegExp(`vuln-code-snippet neutral-line.*${challengeKey}`).exec(lines[i]) != null) {

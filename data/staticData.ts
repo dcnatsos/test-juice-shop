@@ -3,11 +3,23 @@ import { readFile } from 'fs/promises'
 import { safeLoad } from 'js-yaml'
 import logger from '../lib/logger'
 
+
 export async function loadStaticData (file: string) {
-  const filePath = path.resolve('./data/static/' + file + '.yml')
-  return await readFile(filePath, 'utf8')
-    .then(safeLoad)
-    .catch(() => logger.error('Could not open file: "' + filePath + '"'))
+  // To prevent Path Traversal, filter out:
+  // - Special characters (e.g. !, @, #, $, %, ^, &, *, (, ), +, =, [, ], {, }, |, \, :, ;, ", ', <, >, ,, ., /, ?, `, etc.)
+  // - Spaces
+  // - Periods
+  // - Slashes 
+  const isValidFile = /^[a-zA-Z0-9_-]+$/.test(file); 
+
+  if (isValidFile) {
+    const filePath = path.resolve('./data/static/' + file + '.yml')
+    return await readFile(filePath, 'utf8')
+      .then(safeLoad)
+      .catch(() => logger.error('Could not open file: "' + filePath + '"'))
+  } else {
+    throw new Error('Invalid file name')
+  }
 }
 
 export interface StaticUser {
